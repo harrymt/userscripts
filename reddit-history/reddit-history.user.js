@@ -238,6 +238,7 @@ function save_limit() {
     var re = new RegExp("^([1-9]|[1-9][0-9]|[1-9][0-9][0-9]|[1-9][0-9][0-9][0-9]|[1-9][0-9][0-9][0-9][0-9])$"); // 1...99999
     if (re.test(h_limit.value)) {
         GM_setValue('limit', parseInt(h_limit.value) - 1);
+        filter();
     } else {
         alert("Enter a number from 1 to 99999");
     }

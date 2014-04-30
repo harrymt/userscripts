@@ -92,6 +92,7 @@ function append_history_tab() {
         h_filter.addEventListener('click', filter);
         h_clear.addEventListener('click', clear);
         h_save.addEventListener('click', save_limit);
+
         h_case.addEventListener('click', function () {
             GM_setValue('ignorecase', h_case.checked);
         });
@@ -103,7 +104,8 @@ function append_history_tab() {
         var h_limit = document.getElementById('rhLimit');
         h_limit.value = GM_getValue('limit', 10000);
 
-        show_history();
+        // Display the History after the tab click 
+        filter();
     };
 
     link.innerHTML = "history";

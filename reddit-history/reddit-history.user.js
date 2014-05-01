@@ -19,14 +19,17 @@ var history = new History(user);
 append_history_tab();
 add_click_listeners();
 
+
+
+
 /**
  * Appends a history tab to the navbar
  */
 function append_history_tab() {
     "use strict"; // Better error catching fix, see caniuse.com/#use-strict
-    var tabMenu = header.querySelectorAll('ul.tabmenu')[0],
-        listItem = document.createElement('li'),
-        link = document.createElement('a');
+    var tabMenu = header.querySelectorAll('ul.tabmenu')[0];
+    var listItem = document.createElement('li');
+    var link = document.createElement('a');
 
     /**
      * Displays the history tab
@@ -74,7 +77,8 @@ function append_history_tab() {
         s += "<button id='rhFilter'>Filter (regex)</button>";
         s += "<button id='rhClear'>Clear All History</button>";
         s += "<div style='text-align: right; width: 50%; float: right;'>";
-        s += "Limit<input id='rhLimit' value=''/>";
+        s += "Limit<input id='rhLimit' value='2'/>";
+        s += "<input type='button' id='rhIncrementor' value='+'><input type='button' id='rhDecrementor' value='-'>";
         s += "<button id='rhSave'>Save</button></div>";
         s += "<br><input type='checkbox' id='rhIgnoreCase' checked='" + GM_getValue('ignorecase', true) + "'/>ignore case";
         h_controls.innerHTML = s;
@@ -97,15 +101,38 @@ function append_history_tab() {
             GM_setValue('ignorecase', h_case.checked);
         });
 
+        // Add limit + and - button listeners
+        var h_incrementor = document.getElementById('rhIncrementor');
+        var h_decrementor = document.getElementById('rhDecrementor');
+        h_incrementor.addEventListener('click', function () {
+            change_limit(1, 'increment');
+        });
+        h_decrementor.addEventListener('click', function () {
+            change_limit(1, 'decrement');
+        });
+
         // Add select listener
         var h_subs = document.getElementById('rhSubs');
         h_subs.addEventListener('change', filter);
 
         var h_limit = document.getElementById('rhLimit');
-        h_limit.value = GM_getValue('limit', 10000);
+
+        // TODO make this more efficient
+        // If the value is 0 (start value), set it to default limit
+        var defaultLimit = 10;
+        var currentLimit = GM_getValue('limit', 10000);
+
+        if (currentLimit < 0) {
+            h_limit.value = parseInt(defaultLimit);
+        } else {
+            h_limit.value = currentLimit;
+        }
+
+
+        alert('GM_getValue = ' + h_limit.value);
 
         // Display the History after the tab click 
-        filter();
+        save_limit();
     };
 
     link.innerHTML = "history";
@@ -114,6 +141,68 @@ function append_history_tab() {
     listItem.appendChild(link);
     tabMenu.appendChild(listItem);
 }
+
+/*
+ * Change the limit of history shown.
+ *
+ * Example usage.
+ * // Decrement the limit by 2
+ * change_limit(2, 'decrement')
+ *
+ * @param amount, integer stating the amount to change the limit by.
+ * @param type, 'decrement' or 'increment', add to minus the amount.
+ *
+ * TODO If user puts in !int in box, NaN happens and fails. Fix this
+ */
+function change_limit(amount, type) {
+
+    // Get current limit value 
+    var counterVal = parseInt(document.getElementById('rhLimit').value);
+
+    // If there is an error in the limit box, reset it back to 1
+    if (counterVal === undefined || counterVal < 1) {
+        counterVal = 1;
+    }
+
+    // Function error checking, normally wouldn't be a problem
+    if (amount !== undefined && amount > 0) {
+
+        console.log(type + " limit by " + amount);
+
+        // If type is invalid, return
+        if (type != 'increment' && type != 'decrement') {
+            console.log('string passed in error. Usage change_limit(amount,\'increment\' or \'decrement\')');
+            return;
+        }
+
+        // Increment or decrement based on input
+        if (type == 'increment') {
+            console.log('Incremented to ' + (counterVal + amount));
+            // Increment
+            document.getElementById('rhLimit').value = counterVal + amount;
+        }
+
+        if (type == 'decrement') {
+            console.log('Decremented to ' + (counterVal - amount));
+
+            var newLimit = parseInt(counterVal - amount);
+            if (newLimit < 1) {
+                newLimit = 1;
+            }
+            // Decrement
+            document.getElementById('rhLimit').value = newLimit;
+        }
+
+        // Update the History shown.
+        save_limit();
+
+    } else {
+        // Error in function 1st arg
+        console.log('Amount passed in error. Usage change_limit(amount,\'increment\' or \'decrement\')');
+    }
+}
+
+
 
 /**
  * Adds a listener to each submission
@@ -240,7 +329,8 @@ function save_limit() {
         GM_setValue('limit', parseInt(h_limit.value) - 1);
         filter();
     } else {
-        alert("Enter a number from 1 to 99999");
+        //alert("Enter a number from 1 to 99999");
+
     }
 }
 

@@ -20,8 +20,6 @@ append_history_tab();
 add_click_listeners();
 
 
-
-
 /**
  * Appends a history tab to the navbar
  */
@@ -73,14 +71,17 @@ function append_history_tab() {
         for (i = 0; i < keys.length; ++i) {
             s += "<option value='" + subs[keys[i]] + "'>" + keys[i] + "</option>";
         }
+
         s += "</select> <input id='rhRegex' value=''/>";
         s += "<button id='rhFilter'>Filter (regex)</button>";
         s += "<button id='rhClear'>Clear All History</button>";
+        s += "<button id='rhExport'>Export History to csv</button>";
         s += "<div style='text-align: right; width: 50%; float: right;'>";
-        s += "Limit<input id='rhLimit' value='2'/>";
+        s += "Limit<input id='rhLimit' value='0'/>";
         s += "<input type='button' id='rhIncrementor' value='+'><input type='button' id='rhDecrementor' value='-'>";
         s += "<button id='rhSave'>Save</button></div>";
         s += "<br><input type='checkbox' id='rhIgnoreCase' checked='" + GM_getValue('ignorecase', true) + "'/>ignore case";
+
         h_controls.innerHTML = s;
         content.appendChild(h_controls);
 
@@ -96,7 +97,6 @@ function append_history_tab() {
         h_filter.addEventListener('click', filter);
         h_clear.addEventListener('click', clear);
         h_save.addEventListener('click', save_limit);
-
         h_case.addEventListener('click', function () {
             GM_setValue('ignorecase', h_case.checked);
         });
@@ -110,6 +110,10 @@ function append_history_tab() {
         h_decrementor.addEventListener('click', function () {
             change_limit(1, 'decrement');
         });
+
+        // Export all history
+        var h_Export = document.getElementById('rhExport');
+        h_Export.addEventListener('click', export_history);
 
         // Add select listener
         var h_subs = document.getElementById('rhSubs');
@@ -128,9 +132,6 @@ function append_history_tab() {
             h_limit.value = currentLimit;
         }
 
-
-        alert('GM_getValue = ' + h_limit.value);
-
         // Display the History after the tab click 
         save_limit();
     };
@@ -141,6 +142,66 @@ function append_history_tab() {
     listItem.appendChild(link);
     tabMenu.appendChild(listItem);
 }
+
+/*
+ * Export all users Reddit history in csv format.
+ *
+ * TODO have different data ranges, date ranges.
+ *
+ */
+function export_history() {
+
+    // prepare CSV data
+    var csvData = new Array();
+
+    // Create csv headings
+    csvData.push('"Post Title","Link","Subreddit","Date viewed","Domain"');
+
+    // A messy way to get all history items
+    // TODO use jquery  
+    var history_items = document.getElementsByClassName('historyItems')[0].children;
+    var history_item = null,
+        h_title = null,
+        h_link = null,
+        h_subreddit = null,
+        h_dateviewed = null,
+        h_domain = null;
+
+    var url = null;
+
+    // Cycle through each history item
+    for (var i = 0; i < history_items.length; i += 2) {
+
+        /* MESSY TODO FIX */
+        // Gets all of the history information to be stored 
+        history_item = document.getElementsByClassName('historyItems')[0].children[i].children[2].children;
+
+        // Get each item's attributes
+        url = history_item[0].children[0];
+        h_title = url.innerHTML;
+        h_link = url.href;
+        h_subreddit = history_item[1].children[0].href.substring(21, 100); // Bad way to be trimmed
+        h_dateviewed = history_item[1].innerHTML.substring(17, 32); // Bad way to be trimmed
+        h_domain = history_item[0].children[1].children[0].innerHTML; // Could get this from link
+
+        console.log('--------------');
+        console.log('TITLE : ' + h_title);
+        console.log('LINK : ' + h_link);
+        console.log('SUBREDDIT : ' + h_subreddit);
+        console.log('DATEVIEWED : ' + h_dateviewed);
+        console.log('DOMAIN : ' + h_domain);
+
+        csvData.push('"' + h_title + '","' + h_link + '","' + h_subreddit + '","' + h_dateviewed + '","' + h_domain + '","' + '"');
+    }
+
+    // Prepare the download
+    var buffer = csvData.join("\n");
+    var uri = "data:text/csv;charset=utf8," + encodeURIComponent(buffer);
+
+    // Download the csv file
+    document.location = uri;
+}
+
 
 /*
  * Change the limit of history shown.
@@ -219,7 +280,7 @@ function add_click_listeners() {
 function add_handlers(s) {
     var link = s.querySelectorAll('a.title')[0];
     var comment = s.querySelectorAll('a.comments')[0];
-    var expbtn = s.querySelectorAll('div.expando-button')[0];
+    var expbtn = s.querySelectorAll('a.expando-button')[0];
 
     /**
      * Adds the submission to history
@@ -391,6 +452,7 @@ History.prototype.indexOf = function (s) {
 };
 
 History.prototype.add_submission = function (name, url, comments, sub_name, sub_url, domain_name, domain_url) {
+    console.log('You clicked on a submission from ' + name);
     var s = {
         'name': name,
         'url': url,
